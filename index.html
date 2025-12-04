@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog Loading...</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Markdown 解析器 (marked) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -15,7 +14,6 @@
         h1, h2, h3, .font-serif-title { font-family: 'Playfair Display', serif; }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Markdown 內容樣式修正 */
         .markdown-body p { margin-bottom: 1.5em; line-height: 1.8; }
         .markdown-body h3 { font-size: 1.5em; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; font-family: 'Playfair Display', serif; }
         .markdown-body blockquote { border-left: 4px solid #ddd; padding-left: 1em; color: #666; font-style: italic; }
@@ -30,19 +28,41 @@
            <span class="w-4 h-4 rounded-full bg-white text-[#1d2327] flex items-center justify-center font-bold">W</span> 
            My Site
          </span>
-         <span class="opacity-70">Markdown Mode</span>
+         <span class="opacity-70">Categorized Mode</span>
     </div>
 
     <!-- 導航欄 -->
     <nav class="sticky top-0 z-50 bg-[#1a1a1a] text-gray-300 shadow-md border-b border-gray-800 transition-all duration-300">
         <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-            <button onclick="toggleMenu()" class="p-2 hover:bg-white/10 rounded transition-colors"><i data-lucide="menu" class="w-5 h-5"></i></button>
-            <div id="nav-title" onclick="renderHome()" class="cursor-pointer font-serif-title text-sm tracking-widest uppercase opacity-0 transition-opacity duration-500 hover:text-white"></div>
+            
+            <!-- 左側：選單按鈕區 -->
+            <div class="flex items-center gap-6">
+                <!-- 手機版漢堡選單 (md:hidden 表示電腦版隱藏) -->
+                <button onclick="toggleMenu()" class="md:hidden p-2 hover:bg-white/10 rounded transition-colors">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+
+                <!-- 電腦版直接顯示連結 (hidden md:flex 表示手機版隱藏) -->
+                <div class="hidden md:flex gap-6 text-xs font-bold uppercase tracking-widest">
+                    <button onclick="renderHome()" class="hover:text-white transition-colors">Home</button>
+                    <button onclick="renderCategory('Creation')" class="hover:text-white transition-colors">Creation</button>
+                    <button onclick="renderCategory('Mur')" class="hover:text-white transition-colors">Mur</button>
+                </div>
+            </div>
+
+            <!-- 中間：標題 (捲動後顯示) -->
+            <div id="nav-title" onclick="renderHome()" class="cursor-pointer font-serif-title text-sm tracking-widest uppercase opacity-0 transition-opacity duration-500 hover:text-white absolute left-1/2 transform -translate-x-1/2"></div>
+            
+            <!-- 右側：搜尋 (裝飾用) -->
             <button class="p-2 hover:bg-white/10 rounded transition-colors"><i data-lucide="search" class="w-5 h-5"></i></button>
         </div>
-        <div id="mobile-menu" class="hidden bg-[#2a2a2a] border-t border-gray-700 py-4 px-6 absolute w-full shadow-xl">
-             <ul class="space-y-4 text-sm tracking-wide text-gray-300">
-               <li onclick="renderHome(); toggleMenu()" class="cursor-pointer hover:text-white border-b border-gray-700 pb-2">首頁</li>
+
+        <!-- 手機版下拉選單 -->
+        <div id="mobile-menu" class="hidden bg-[#2a2a2a] border-t border-gray-700 py-4 px-6 absolute w-full shadow-xl z-50">
+             <ul class="space-y-4 text-sm tracking-wide text-gray-300 font-bold uppercase">
+               <li onclick="renderHome(); toggleMenu()" class="cursor-pointer hover:text-white border-b border-gray-700 pb-2">Home</li>
+               <li onclick="renderCategory('Creation'); toggleMenu()" class="cursor-pointer hover:text-white border-b border-gray-700 pb-2">Creation</li>
+               <li onclick="renderCategory('Mur'); toggleMenu()" class="cursor-pointer hover:text-white border-b border-gray-700 pb-2">Mur</li>
              </ul>
         </div>
     </nav>
@@ -56,46 +76,38 @@
         <div id="footer-copyright" class="mt-4 text-xs text-gray-300 font-sans uppercase tracking-widest"></div>
     </footer>
 
-    <!-- 引入文章清單 -->
     <script src="list.js"></script>
 
     <script>
-        // 設定區
         const blogConfig = {
             title: "ADMAN'S LANDFILL SITE",
             subtitle: "Produce nothing but everything:]",
             heroImage: "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2072&auto=format&fit=crop"
         };
 
-        let allPosts = []; // 儲存抓取下來的文章數據
+        let allPosts = [];
 
-        // 解析 Markdown 檔案的 Front Matter (開頭的設定區)
         function parsePost(markdown, filename) {
             const parts = markdown.split('---');
-            if (parts.length < 3) return null; // 格式不對
-
+            if (parts.length < 3) return null;
             const metaRaw = parts[1];
             const contentRaw = parts.slice(2).join('---');
-
-            // 簡單解析 key: value
             const meta = {};
             metaRaw.split('\n').forEach(line => {
                 const [key, ...value] = line.split(':');
                 if (key && value) meta[key.trim()] = value.join(':').trim();
             });
-
             return {
                 id: filename,
                 title: meta.title || '無題',
                 date: meta.date || 'Unknown Date',
-                category: meta.category || '未分類',
+                category: meta.category ? meta.category.trim() : '未分類', // 確保去除空白
                 tags: meta.tags ? meta.tags.split(',').map(t=>t.trim()) : [],
-                excerpt: contentRaw.substring(0, 150).replace(/[#*`]/g, '') + '...', // 自動抓摘要
-                content: marked.parse(contentRaw) // 轉換 Markdown 為 HTML
+                excerpt: contentRaw.substring(0, 150).replace(/[#*`]/g, '') + '...',
+                content: marked.parse(contentRaw)
             };
         }
 
-        // 載入所有文章
         async function loadAllPosts() {
             const promises = postFiles.map(async (filename) => {
                 try {
@@ -108,59 +120,85 @@
                     return null;
                 }
             });
-
             const results = await Promise.all(promises);
-            // 過濾掉失敗的，並按日期排序 (新到舊)
             allPosts = results.filter(p => p !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-            renderHome();
+            renderHome(); 
         }
 
-        // 渲染畫面邏輯 (適配 Markdown)
         const container = document.getElementById('app-container');
         document.title = blogConfig.title;
         document.getElementById('nav-title').innerText = blogConfig.title;
         document.getElementById('footer-subtitle').innerText = blogConfig.subtitle;
         document.getElementById('footer-copyright').innerText = `© 2025 ${blogConfig.title}`;
 
-        function renderHome() {
+        // 通用列表渲染函數
+        function renderList(posts, titleText = null) {
             window.scrollTo(0, 0);
+            
+            // 如果有指定標題 (分類模式)，顯示分類標題；否則顯示 Hero 區塊
+            let headerHtml = '';
+            if (titleText) {
+                headerHtml = `
+                    <div class="pt-24 pb-12 text-center fade-in">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4 block">Category</span>
+                        <h1 class="text-4xl md:text-5xl font-serif-title text-[#1a1a1a]">${titleText}</h1>
+                        <div class="w-8 h-[1px] bg-[#1a1a1a] mx-auto mt-6"></div>
+                    </div>
+                `;
+            } else {
+                headerHtml = `
+                    <header class="relative w-full h-[500px] flex items-center justify-center bg-[#0a0a0a] overflow-hidden fade-in">
+                        <div class="absolute inset-0 z-0">
+                            <img src="${blogConfig.heroImage}" class="w-full h-full object-cover opacity-80">
+                            <div class="absolute inset-0 bg-black/30"></div>
+                        </div>
+                        <div class="relative z-10 w-[90%] max-w-2xl bg-[#0a0a0a]/80 backdrop-blur-sm p-8 md:p-12 text-center text-white border-t border-white/10 shadow-2xl">
+                            <h1 class="text-3xl md:text-5xl tracking-widest uppercase font-serif-title mb-6 leading-relaxed">${blogConfig.title}</h1>
+                            <div class="w-16 h-[1px] bg-white/50 mx-auto mb-6"></div>
+                            <p class="text-lg md:text-xl font-light italic opacity-90 font-serif-title">${blogConfig.subtitle}</p>
+                        </div>
+                    </header>
+                `;
+            }
+
             container.innerHTML = `
-                <header class="relative w-full h-[500px] flex items-center justify-center bg-[#0a0a0a] overflow-hidden fade-in">
-                    <div class="absolute inset-0 z-0">
-                        <img src="${blogConfig.heroImage}" class="w-full h-full object-cover opacity-80">
-                        <div class="absolute inset-0 bg-black/30"></div>
-                    </div>
-                    <div class="relative z-10 w-[90%] max-w-2xl bg-[#0a0a0a]/80 backdrop-blur-sm p-8 md:p-12 text-center text-white border-t border-white/10 shadow-2xl">
-                        <h1 class="text-3xl md:text-5xl tracking-widest uppercase font-serif-title mb-6 leading-relaxed">${blogConfig.title}</h1>
-                        <div class="w-16 h-[1px] bg-white/50 mx-auto mb-6"></div>
-                        <p class="text-lg md:text-xl font-light italic opacity-90 font-serif-title">${blogConfig.subtitle}</p>
-                    </div>
-                </header>
+                ${headerHtml}
                 <main class="max-w-3xl mx-auto px-6 py-16 md:py-24 bg-white fade-in">
                     <div class="space-y-24">
-                        ${allPosts.map(post => `
+                        ${posts.length > 0 ? posts.map(post => `
                             <article class="flex flex-col items-start group">
                                 <header class="mb-6 w-full">
                                     <h2 onclick="renderPost('${post.id}')" class="text-3xl md:text-4xl font-serif-title text-[#1a1a1a] mb-3 cursor-pointer hover:text-[#666] transition-colors leading-tight">${post.title}</h2>
                                     <div class="flex items-center gap-4 text-xs text-gray-400 uppercase tracking-wider font-sans mt-2">
                                         <span>${post.date}</span>
                                         <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                        <span>${post.category}</span>
+                                        <span onclick="renderCategory('${post.category}')" class="cursor-pointer hover:text-black border-b border-transparent hover:border-black transition-all">${post.category}</span>
                                     </div>
                                 </header>
                                 <div class="text-gray-600 leading-8 font-light text-lg mb-6 line-clamp-3">
                                     ${post.excerpt}
                                 </div>
                                 <div class="mt-2">
-                                    <span class="text-gray-500 text-sm italic mb-2 block">${post.tags.map(t => `#${t}`).join(' ')}</span>
                                     <button onclick="renderPost('${post.id}')" class="text-[#1a1a1a] font-bold text-sm uppercase tracking-widest border-b-2 border-transparent hover:border-[#1a1a1a] transition-all pb-1 mt-2">繼續閱讀</button>
                                 </div>
                             </article>
-                        `).join('')}
+                        `).join('') : `<p class="text-center text-gray-500 italic">這個分類還沒有文章。</p>`}
                     </div>
                 </main>
             `;
             lucide.createIcons();
+        }
+
+        // 顯示首頁 (全部文章)
+        function renderHome() {
+            renderList(allPosts);
+        }
+
+        // 顯示分類 (篩選文章)
+        function renderCategory(catName) {
+            // 簡單的過濾邏輯：只要 category 欄位包含該字串即可 (不分大小寫)
+            const filtered = allPosts.filter(p => p.category.toLowerCase() === catName.toLowerCase());
+            renderList(filtered, catName);
         }
 
         function renderPost(id) {
@@ -173,7 +211,9 @@
                     <article>
                         <header class="mb-12 text-center">
                             <h1 class="text-4xl md:text-5xl font-serif-title text-[#1a1a1a] mb-6 leading-tight">${post.title}</h1>
-                            <div class="text-gray-400 text-sm font-sans uppercase tracking-widest">${post.date} / ${post.category}</div>
+                            <div class="text-gray-400 text-sm font-sans uppercase tracking-widest">
+                                ${post.date} / <span class="cursor-pointer hover:text-black border-b border-transparent hover:border-black transition-all" onclick="renderCategory('${post.category}')">${post.category}</span>
+                            </div>
                         </header>
                         <div class="markdown-body prose prose-lg prose-gray max-w-none text-[#2c2c2c] leading-loose font-light">
                             ${post.content}
@@ -195,7 +235,6 @@
             else navTitle.classList.add('opacity-0');
         });
 
-        // 啟動程式
         loadAllPosts();
     </script>
 </body>
