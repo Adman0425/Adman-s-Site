@@ -179,6 +179,7 @@
                                     ${post.excerpt}
                                 </div>
                                 <div class="mt-2">
+                                    <span class="text-gray-500 text-sm italic mb-2 block">${post.tags.map(t => `#${t}`).join(' ')}</span>
                                     <button onclick="renderPost('${post.id}')" class="text-[#1a1a1a] font-bold text-sm uppercase tracking-widest border-b-2 border-transparent hover:border-[#1a1a1a] transition-all pb-1 mt-2">繼續閱讀</button>
                                 </div>
                             </article>
